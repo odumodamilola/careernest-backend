@@ -101,7 +101,7 @@ export function setupAuth(app: Express) {
   });
   
   // API route for user registration
-  app.post("/api/register", async (req: Request, res: Response) => {
+  app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
       const user = await storage.createUser(req.body);
       
@@ -123,8 +123,16 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // Also keep the old route for backward compatibility
+  app.post("/api/register", (req: Request, res: Response) => {
+    app.handle(req, res, () => {
+      req.url = "/api/auth/register";
+      app.handle(req, res);
+    });
+  });
+
   // API route for user login
-  app.post("/api/login", (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/auth/login", (req: Request, res: Response, next: NextFunction) => {
     passport.authenticate("local", (err: Error | null, user: Express.User | false, info: { message: string } | undefined) => {
       if (err) {
         return res.status(500).json({ message: "Server error during login", error: err.message });
@@ -149,8 +157,16 @@ export function setupAuth(app: Express) {
     })(req, res, next);
   });
 
+  // Also keep the old route for backward compatibility
+  app.post("/api/login", (req: Request, res: Response, next: NextFunction) => {
+    app.handle(req, res, () => {
+      req.url = "/api/auth/login";
+      app.handle(req, res, next);
+    });
+  });
+
   // API route for user logout
-  app.post("/api/logout", (req: Request, res: Response) => {
+  app.post("/api/auth/logout", (req: Request, res: Response) => {
     req.logout((err) => {
       if (err) {
         return res.status(500).json({ message: "Error during logout", error: err.message });
@@ -160,8 +176,16 @@ export function setupAuth(app: Express) {
     });
   });
 
+  // Also keep the old route for backward compatibility
+  app.post("/api/logout", (req: Request, res: Response) => {
+    app.handle(req, res, () => {
+      req.url = "/api/auth/logout";
+      app.handle(req, res);
+    });
+  });
+
   // API route to get current user
-  app.get("/api/user", (req: Request, res: Response) => {
+  app.get("/api/users/profile", (req: Request, res: Response) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
     }
@@ -170,6 +194,14 @@ export function setupAuth(app: Express) {
     return res.status(200).json({
       ...user,
       password: undefined // Don't send password back
+    });
+  });
+
+  // Also keep the old route for backward compatibility
+  app.get("/api/user", (req: Request, res: Response) => {
+    app.handle(req, res, () => {
+      req.url = "/api/users/profile";
+      app.handle(req, res);
     });
   });
 }
