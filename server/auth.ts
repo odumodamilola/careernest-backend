@@ -4,13 +4,14 @@ import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
-import { User } from "@shared/schema";
+import { User as UserType } from "@shared/schema";
 import jwt from "jsonwebtoken";
 
-// Add Express.User interface extension
+// Define custom user interface for Express
 declare global {
   namespace Express {
-    interface User extends User {}
+    // Use a different name to avoid circular reference
+    interface User extends UserType {}
   }
 }
 
@@ -85,7 +86,7 @@ export function setupAuth(app: Express) {
   
   // Add JWT generation helper to request object
   app.use((req: Request, _res: Response, next: NextFunction) => {
-    req.generateJWT = (user: User) => {
+    req.generateJWT = (user: Express.User) => {
       return jwt.sign(
         { 
           id: user.id, 
@@ -114,7 +115,7 @@ export function setupAuth(app: Express) {
         return res.status(201).json({
           ...user,
           password: undefined, // Don't send password back
-          token: req.generateJWT(user)
+          token: req.generateJWT(user as Express.User)
         });
       });
     } catch (error: any) {
@@ -124,7 +125,7 @@ export function setupAuth(app: Express) {
 
   // API route for user login
   app.post("/api/login", (req: Request, res: Response, next: NextFunction) => {
-    passport.authenticate("local", (err, user, info) => {
+    passport.authenticate("local", (err: Error | null, user: Express.User | false, info: { message: string } | undefined) => {
       if (err) {
         return res.status(500).json({ message: "Server error during login", error: err.message });
       }
@@ -177,7 +178,7 @@ export function setupAuth(app: Express) {
 declare global {
   namespace Express {
     interface Request {
-      generateJWT: (user: User) => string;
+      generateJWT: (user: Express.User) => string;
     }
   }
 }
