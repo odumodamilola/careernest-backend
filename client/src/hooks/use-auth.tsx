@@ -4,43 +4,42 @@ import {
   useMutation,
   UseMutationResult,
 } from "@tanstack/react-query";
-import { User, UserLogin, UserRegister } from "@shared/schema";
+import { insertUserSchema, User as SelectUser, InsertUser, Login } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 type AuthContextType = {
-  user: User | null;
+  user: SelectUser | null;
   isLoading: boolean;
   error: Error | null;
-  loginMutation: UseMutationResult<User, Error, UserLogin>;
+  loginMutation: UseMutationResult<SelectUser, Error, Login>;
   logoutMutation: UseMutationResult<void, Error, void>;
-  registerMutation: UseMutationResult<User, Error, UserRegister>;
+  registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  
   const {
     data: user,
     error,
     isLoading,
-  } = useQuery<User | undefined, Error>({
+  } = useQuery<SelectUser | null, Error>({
     queryKey: ["/api/users/profile"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
 
   const loginMutation = useMutation({
-    mutationFn: async (credentials: UserLogin) => {
+    mutationFn: async (credentials: Login) => {
       const res = await apiRequest("POST", "/api/auth/login", credentials);
       return await res.json();
     },
-    onSuccess: (user: User) => {
+    onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/users/profile"], user);
       toast({
         title: "Login successful",
-        description: "Welcome back!",
+        description: `Welcome back, ${user.username}!`,
       });
     },
     onError: (error: Error) => {
@@ -53,15 +52,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (userData: UserRegister) => {
+    mutationFn: async (userData: InsertUser) => {
       const res = await apiRequest("POST", "/api/auth/register", userData);
       return await res.json();
     },
-    onSuccess: (user: User) => {
+    onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/users/profile"], user);
       toast({
         title: "Registration successful",
-        description: "Your account has been created!",
+        description: `Welcome to CareerNest, ${user.username}!`,
       });
     },
     onError: (error: Error) => {
@@ -81,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.setQueryData(["/api/users/profile"], null);
       toast({
         title: "Logged out",
-        description: "You have been logged out successfully.",
+        description: "You have been successfully logged out.",
       });
     },
     onError: (error: Error) => {

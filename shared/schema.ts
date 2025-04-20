@@ -1,180 +1,187 @@
-import { pgTable, text, serial, integer, boolean, timestamp, json } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// User schema
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  email: text("email").notNull().unique(),
-  firstName: text("first_name").notNull(),
-  lastName: text("last_name").notNull(),
-  bio: text("bio"),
-  skills: text("skills").array(),
-  interests: text("interests").array(),
-  profilePicture: text("profile_picture"),
+// USER SCHEMAS
+export const userSchema = z.object({
+  id: z.string(),
+  username: z.string().min(3).max(50),
+  email: z.string().email(),
+  password: z.string().min(6),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  bio: z.string().optional(),
+  skills: z.array(z.string()).optional(),
+  interests: z.array(z.string()).optional(),
+  profilePicture: z.string().optional(),
+  bookmarkedCareers: z.array(z.string()).optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
 });
 
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-});
-
-// Career schema
-export const careers = pgTable("careers", {
-  id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  averageSalary: text("average_salary"),
-  requirements: text("requirements").array(),
-  skills: text("skills").array(),
-  industries: text("industries").array(),
-  jobOutlook: text("job_outlook"),
-});
-
-export const insertCareerSchema = createInsertSchema(careers).omit({
-  id: true,
-});
-
-// Career bookmark schema
-export const careerBookmarks = pgTable("career_bookmarks", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  careerId: integer("career_id").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertCareerBookmarkSchema = createInsertSchema(careerBookmarks).omit({
-  id: true,
+export const insertUserSchema = userSchema.omit({ 
+  id: true, 
+  bookmarkedCareers: true,
   createdAt: true,
+  updatedAt: true
 });
 
-// Mentor schema
-export const mentors = pgTable("mentors", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id"), // Optional link to users table if mentor is also a user
-  name: text("name").notNull(),
-  title: text("title").notNull(),
-  company: text("company").notNull(),
-  bio: text("bio").notNull(),
-  expertise: text("expertise").array(),
-  yearsOfExperience: integer("years_of_experience").notNull(),
-  rating: integer("rating"),
-  profilePicture: text("profile_picture"),
-  availability: json("availability"), // JSON structure for availability
-});
-
-export const insertMentorSchema = createInsertSchema(mentors).omit({
-  id: true,
-});
-
-// Mentorship session schema
-export const mentorshipSessions = pgTable("mentorship_sessions", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  mentorId: integer("mentor_id").notNull(),
-  scheduledDate: timestamp("scheduled_date").notNull(),
-  duration: integer("duration").notNull(), // in minutes
-  meetingPlatform: text("meeting_platform").notNull(),
-  meetingLink: text("meeting_link"),
-  status: text("status").notNull(), // scheduled, completed, cancelled
-  notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertMentorshipSessionSchema = createInsertSchema(mentorshipSessions).omit({
-  id: true,
+export const updateUserSchema = userSchema.omit({ 
+  id: true, 
+  password: true,
   createdAt: true,
+  updatedAt: true
+}).partial();
+
+export const loginSchema = z.object({
+  username: z.string(),
+  password: z.string()
 });
 
-// Assessment schema
-export const assessments = pgTable("assessments", {
-  id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  category: text("category").notNull(),
-  timeLimit: integer("time_limit"), // in minutes
-  questions: json("questions").notNull(), // JSON array of questions
+// CAREER SCHEMAS
+export const careerSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  requirements: z.array(z.string()),
+  salary: z.object({
+    min: z.number(),
+    max: z.number(),
+    currency: z.string().default("USD")
+  }),
+  skills: z.array(z.string()),
+  demand: z.string().optional(),
+  growthRate: z.number().optional(),
+  categories: z.array(z.string()).optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
 });
 
-export const insertAssessmentSchema = createInsertSchema(assessments).omit({
-  id: true,
+// MENTOR SCHEMAS
+export const mentorSchema = z.object({
+  id: z.string(),
+  userId: z.string().optional(),
+  name: z.string(),
+  title: z.string(),
+  company: z.string(),
+  bio: z.string(),
+  expertise: z.array(z.string()),
+  yearsOfExperience: z.number(),
+  rating: z.number().optional(),
+  availability: z.array(z.object({
+    day: z.string(),
+    startTime: z.string(),
+    endTime: z.string()
+  })).optional(),
+  profilePicture: z.string().optional(),
+  hourlyRate: z.number().optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
 });
 
-// Assessment result schema
-export const assessmentResults = pgTable("assessment_results", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  assessmentId: integer("assessment_id").notNull(),
-  score: integer("score").notNull(),
-  answers: json("answers").notNull(), // JSON of user answers
-  feedback: json("feedback"), // JSON of feedback per question
-  completedAt: timestamp("completed_at").defaultNow().notNull(),
+export const sessionSchema = z.object({
+  id: z.string(),
+  mentorId: z.string(),
+  userId: z.string(),
+  date: z.string(),
+  startTime: z.string(),
+  endTime: z.string(),
+  status: z.enum(["scheduled", "completed", "cancelled"]),
+  notes: z.string().optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
 });
 
-export const insertAssessmentResultSchema = createInsertSchema(assessmentResults).omit({
-  id: true,
-  completedAt: true,
+// ASSESSMENT SCHEMAS
+export const questionSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  options: z.array(z.object({
+    id: z.string(),
+    text: z.string(),
+    isCorrect: z.boolean().optional()
+  })),
+  type: z.enum(["multiple-choice", "true-false", "open-ended"]),
+  points: z.number().optional(),
 });
 
-// Learning module schema
-export const learningModules = pgTable("learning_modules", {
-  id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  category: text("category").notNull(),
-  content: json("content").notNull(), // JSON structure of module content
-  estimatedDuration: integer("estimated_duration").notNull(), // in minutes
-  difficulty: text("difficulty").notNull(), // beginner, intermediate, advanced
-  prerequisites: text("prerequisites").array(),
-  skills: text("skills").array(),
+export const assessmentSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  timeLimit: z.number().optional(),
+  questions: z.array(questionSchema),
+  category: z.string().optional(),
+  difficulty: z.enum(["beginner", "intermediate", "advanced"]).optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
 });
 
-export const insertLearningModuleSchema = createInsertSchema(learningModules).omit({
-  id: true,
+export const assessmentResultSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  assessmentId: z.string(),
+  score: z.number(),
+  totalPoints: z.number(),
+  answers: z.array(z.object({
+    questionId: z.string(),
+    selectedOptionId: z.string().optional(),
+    openAnswer: z.string().optional(),
+    isCorrect: z.boolean().optional(),
+    points: z.number().optional()
+  })),
+  timeTaken: z.number().optional(),
+  completedAt: z.date(),
 });
 
-// Module completion schema
-export const moduleCompletions = pgTable("module_completions", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  moduleId: integer("module_id").notNull(),
-  progress: integer("progress").notNull(), // percentage completed
-  completed: boolean("completed").notNull().default(false),
-  completedAt: timestamp("completed_at"),
-  lastActivityAt: timestamp("last_activity_at").defaultNow().notNull(),
+export const submitAssessmentSchema = z.object({
+  assessmentId: z.string(),
+  answers: z.array(z.object({
+    questionId: z.string(),
+    selectedOptionId: z.string().optional(),
+    openAnswer: z.string().optional()
+  }))
 });
 
-export const insertModuleCompletionSchema = createInsertSchema(moduleCompletions).omit({
-  id: true,
-  completedAt: true,
-  lastActivityAt: true,
+// LEARNING MODULE SCHEMAS
+export const moduleSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  content: z.string(),
+  estimatedTime: z.number().optional(),
+  category: z.string().optional(),
+  prerequisites: z.array(z.string()).optional(),
+  resources: z.array(z.object({
+    title: z.string(),
+    url: z.string(),
+    type: z.enum(["video", "article", "ebook", "other"])
+  })).optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
 });
 
-// Export types
+export const moduleCompletionSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  moduleId: z.string(),
+  completedAt: z.date(),
+  feedback: z.string().optional(),
+  rating: z.number().optional(),
+});
+
+// Types
+export type User = z.infer<typeof userSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
+export type UpdateUser = z.infer<typeof updateUserSchema>;
+export type Login = z.infer<typeof loginSchema>;
 
-export type InsertCareer = z.infer<typeof insertCareerSchema>;
-export type Career = typeof careers.$inferSelect;
+export type Career = z.infer<typeof careerSchema>;
+export type Mentor = z.infer<typeof mentorSchema>;
+export type Session = z.infer<typeof sessionSchema>;
 
-export type InsertCareerBookmark = z.infer<typeof insertCareerBookmarkSchema>;
-export type CareerBookmark = typeof careerBookmarks.$inferSelect;
+export type Question = z.infer<typeof questionSchema>;
+export type Assessment = z.infer<typeof assessmentSchema>;
+export type AssessmentResult = z.infer<typeof assessmentResultSchema>;
+export type SubmitAssessment = z.infer<typeof submitAssessmentSchema>;
 
-export type InsertMentor = z.infer<typeof insertMentorSchema>;
-export type Mentor = typeof mentors.$inferSelect;
-
-export type InsertMentorshipSession = z.infer<typeof insertMentorshipSessionSchema>;
-export type MentorshipSession = typeof mentorshipSessions.$inferSelect;
-
-export type InsertAssessment = z.infer<typeof insertAssessmentSchema>;
-export type Assessment = typeof assessments.$inferSelect;
-
-export type InsertAssessmentResult = z.infer<typeof insertAssessmentResultSchema>;
-export type AssessmentResult = typeof assessmentResults.$inferSelect;
-
-export type InsertLearningModule = z.infer<typeof insertLearningModuleSchema>;
-export type LearningModule = typeof learningModules.$inferSelect;
-
-export type InsertModuleCompletion = z.infer<typeof insertModuleCompletionSchema>;
-export type ModuleCompletion = typeof moduleCompletions.$inferSelect;
+export type Module = z.infer<typeof moduleSchema>;
+export type ModuleCompletion = z.infer<typeof moduleCompletionSchema>;
