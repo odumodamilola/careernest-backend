@@ -124,11 +124,26 @@ export function setupAuth(app: Express) {
   });
 
   // Also keep the old route for backward compatibility
-  app.post("/api/register", (req: Request, res: Response) => {
-    app.handle(req, res, () => {
-      req.url = "/api/auth/register";
-      app.handle(req, res);
-    });
+  app.post("/api/register", async (req: Request, res: Response) => {
+    try {
+      const user = await storage.createUser(req.body);
+      
+      // Login the user after registration
+      req.login(user, (err) => {
+        if (err) {
+          return res.status(500).json({ message: "Error during login after registration", error: err.message });
+        }
+        
+        // Return user with JWT token
+        return res.status(201).json({
+          ...user,
+          password: undefined, // Don't send password back
+          token: req.generateJWT(user as Express.User)
+        });
+      });
+    } catch (error: any) {
+      return res.status(400).json({ message: error.message });
+    }
   });
 
   // API route for user login
@@ -159,10 +174,28 @@ export function setupAuth(app: Express) {
 
   // Also keep the old route for backward compatibility
   app.post("/api/login", (req: Request, res: Response, next: NextFunction) => {
-    app.handle(req, res, () => {
-      req.url = "/api/auth/login";
-      app.handle(req, res, next);
-    });
+    passport.authenticate("local", (err: Error | null, user: Express.User | false, info: { message: string } | undefined) => {
+      if (err) {
+        return res.status(500).json({ message: "Server error during login", error: err.message });
+      }
+      
+      if (!user) {
+        return res.status(401).json({ message: info?.message || "Authentication failed" });
+      }
+      
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          return res.status(500).json({ message: "Error during login", error: loginErr.message });
+        }
+        
+        // Return user with JWT token
+        return res.status(200).json({
+          ...user,
+          password: undefined, // Don't send password back
+          token: req.generateJWT(user)
+        });
+      });
+    })(req, res, next);
   });
 
   // API route for user logout
@@ -178,9 +211,12 @@ export function setupAuth(app: Express) {
 
   // Also keep the old route for backward compatibility
   app.post("/api/logout", (req: Request, res: Response) => {
-    app.handle(req, res, () => {
-      req.url = "/api/auth/logout";
-      app.handle(req, res);
+    req.logout((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Error during logout", error: err.message });
+      }
+      
+      return res.status(200).json({ message: "Logged out successfully" });
     });
   });
 
@@ -199,9 +235,14 @@ export function setupAuth(app: Express) {
 
   // Also keep the old route for backward compatibility
   app.get("/api/user", (req: Request, res: Response) => {
-    app.handle(req, res, () => {
-      req.url = "/api/users/profile";
-      app.handle(req, res);
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const user = req.user;
+    return res.status(200).json({
+      ...user,
+      password: undefined // Don't send password back
     });
   });
 }
