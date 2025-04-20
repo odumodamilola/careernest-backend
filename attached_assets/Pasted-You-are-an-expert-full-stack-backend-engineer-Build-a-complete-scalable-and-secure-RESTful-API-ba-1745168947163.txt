@@ -1,0 +1,86 @@
+You are an expert full-stack backend engineer. Build a complete, scalable, and secure RESTful API backend in Node.js using Express.js and MongoDB for a mobile career development app called CareerNest. The frontend is already built with React Native using Expo.
+
+🧩 Key Requirements:
+Build all necessary backend features to support the following functionalities:
+
+📌 Features & Endpoints
+🔐 User Authentication & Profile
+POST /api/auth/register — Register a new user.
+
+POST /api/auth/login — Authenticate and return JWT token.
+
+GET /api/users/profile — Get current user profile (JWT-protected).
+
+PUT /api/users/profile — Update user profile.
+
+POST /api/auth/logout — Invalidate token or destroy session.
+
+🎯 Career Paths
+GET /api/careers — List all available career options.
+
+GET /api/careers/:id — Get detailed info on a specific career.
+
+POST /api/careers/bookmark/:id — Bookmark a career for a user.
+
+GET /api/careers/bookmarks — List all bookmarked careers for a user.
+
+🤝 Mentorship
+GET /api/mentors — Get list of available mentors.
+
+GET /api/mentors/:id — Get mentor's full profile.
+
+POST /api/mentors/schedule/:id — Schedule a mentorship session.
+
+🧠 Assessments
+GET /api/assessments — List all available assessments.
+
+GET /api/assessments/:id — Fetch questions for one assessment.
+
+POST /api/assessments/:id/submit — Submit answers, return results.
+
+GET /api/assessments/results — Fetch previous user results.
+
+📘 Learning Modules
+GET /api/modules — List all learning modules.
+
+GET /api/modules/:id — Get details of a specific module.
+
+POST /api/modules/:id/complete — Mark a module as completed by a user.
+
+🛠️ Tech Stack
+Node.js with Express.js
+
+MongoDB (with Mongoose ODM)
+
+JWT for user authentication
+
+dotenv, helmet, cors, express-validator for secure, modern backend practices
+
+📁 Project Structure
+Generate a clean and modular folder structure like:
+
+lua
+Copy
+Edit
+careerNest-backend/
+├── config/
+├── controllers/
+├── middleware/
+├── models/
+├── routes/
+├── utils/
+├── .env
+├── server.js
+└── package.json
+⚙️ Additional Instructions
+Include input validation on all routes.
+
+Use async/await and proper error handling.
+
+Ensure routes requiring authentication are protected with middleware.
+
+Include a well-documented README.
+
+Support CORS for mobile frontend (Expo).
+
+Host-ready with a Procfile and start script.
