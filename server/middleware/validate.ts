@@ -49,10 +49,5 @@ export const validate = (schema: ZodSchema, source: 'body' | 'query' | 'params' 
 
 // Common parameter validation schemas
 export const idParamSchema = z.object({
-  id: z.string().min(1).refine((val) => {
-    // Add MongoDB ObjectId validation if needed
-    return val.length > 0;
-  }, {
-    message: "Invalid ID format"
-  })
+  id: z.number().int().positive()
 });

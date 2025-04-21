@@ -202,7 +202,7 @@ export const insertUserSchema = z.object({
 export const updateUserSchema = insertUserSchema.omit({ password: true }).partial();
 
 export const loginSchema = z.object({
-  username: z.string().min(1),
+  login: z.string().min(1).describe('Username or Email'),
   password: z.string().min(1)
 });
 

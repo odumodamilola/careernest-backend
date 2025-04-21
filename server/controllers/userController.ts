@@ -1,37 +1,42 @@
 import { Request, Response } from 'express';
-import User from '../models/user';
-import { updateUserSchema } from '@shared/schema';
+import { db } from '../db';
+import { users } from '@shared/schema';
+import { eq } from 'drizzle-orm';
+import { User } from '../middleware/auth';
 
 // @desc    Get current user profile
 // @route   GET /api/users/profile
 // @access  Private
 export const getUserProfile = async (req: Request, res: Response) => {
   try {
-    const user = await User.findById(req.user._id)
-      .populate('bookmarkedCareers', 'title description');
+    if (!req.user) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
 
-    if (user) {
-      res.json({
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        bio: user.bio,
-        skills: user.skills,
-        interests: user.interests,
-        profilePicture: user.profilePicture,
-        bookmarkedCareers: user.bookmarkedCareers
-      });
+    const user = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        bio: users.bio,
+        skills: users.skills,
+        interests: users.interests,
+        profilePicture: users.profilePicture,
+      })
+      .from(users)
+      .where(eq(users.id, req.user.id))
+      .limit(1);
+
+    if (user && user.length > 0) {
+      res.json(user[0]);
     } else {
       res.status(404).json({ message: 'User not found' });
     }
   } catch (error: any) {
     console.error('Get profile error:', error);
-    res.status(500).json({ 
-      message: 'Error retrieving user profile',
-      error: error.message 
-    });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -40,44 +45,40 @@ export const getUserProfile = async (req: Request, res: Response) => {
 // @access  Private
 export const updateUserProfile = async (req: Request, res: Response) => {
   try {
-    const user = await User.findById(req.user._id);
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    if (!req.user) {
+      return res.status(401).json({ message: 'Not authenticated' });
     }
 
-    // Update user fields if provided
-    user.firstName = req.body.firstName || user.firstName;
-    user.lastName = req.body.lastName || user.lastName;
-    user.email = req.body.email || user.email;
-    user.bio = req.body.bio || user.bio;
-    user.skills = req.body.skills || user.skills;
-    user.interests = req.body.interests || user.interests;
-    user.profilePicture = req.body.profilePicture || user.profilePicture;
+    const [user] = await db
+      .update(users)
+      .set({
+        firstName: req.body.firstName,
+        lastName: req.body.lastName,
+        bio: req.body.bio,
+        skills: req.body.skills,
+        interests: req.body.interests,
+        profilePicture: req.body.profilePicture,
+      })
+      .where(eq(users.id, req.user.id))
+      .returning();
 
-    // If password included, it will trigger the pre-save hook to hash it
-    if (req.body.password) {
-      user.password = req.body.password;
+    if (user) {
+      res.json({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        bio: user.bio,
+        skills: user.skills,
+        interests: user.interests,
+        profilePicture: user.profilePicture,
+      });
+    } else {
+      res.status(404).json({ message: 'User not found' });
     }
-
-    const updatedUser = await user.save();
-
-    res.json({
-      id: updatedUser._id,
-      username: updatedUser.username,
-      email: updatedUser.email,
-      firstName: updatedUser.firstName,
-      lastName: updatedUser.lastName,
-      bio: updatedUser.bio,
-      skills: updatedUser.skills,
-      interests: updatedUser.interests,
-      profilePicture: updatedUser.profilePicture
-    });
   } catch (error: any) {
     console.error('Update profile error:', error);
-    res.status(500).json({ 
-      message: 'Error updating user profile',
-      error: error.message 
-    });
+    res.status(500).json({ message: 'Server error' });
   }
 };
